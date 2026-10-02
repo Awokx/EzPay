@@ -60,7 +60,8 @@ Stellar Ledger
 
 ### Synchronization Strategy
 - Smart contract emits events for state changes
-- Backend listens to events via Horizon streams
+- Backend polls Soroban RPC `getEvents` filtered by the EzPay contract ID
+- PostgreSQL persists event IDs and an RPC cursor for replay and idempotency
 - Backend updates PostgreSQL to reflect on-chain state
 - Frontend queries backend for combined on-chain/off-chain data
 

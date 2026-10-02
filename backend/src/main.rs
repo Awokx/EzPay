@@ -3,6 +3,7 @@ mod models;
 mod routes;
 mod db;
 mod middleware;
+mod events;
 
 use axum::Router;
 use std::{net::SocketAddr, time::Duration};
@@ -29,6 +30,20 @@ async fn main() -> anyhow::Result<()> {
         .unwrap_or(3001);
 
     let pool = db::create_pool().await?;
+
+    if let Some(event_config) = events::listener::EventListenerConfig::from_env()? {
+        let event_pool = pool.clone();
+        tokio::spawn(async move {
+            loop {
+                if let Err(error) = events::listener::run(event_pool.clone(), event_config.clone()).await {
+                    tracing::error!(%error, "Stellar event listener stopped; restarting");
+                    tokio::time::sleep(Duration::from_secs(5)).await;
+                }
+            }
+        });
+    } else {
+        tracing::info!("Stellar event listener disabled: STELLAR_CONTRACT_ID is not set");
+    }
 
     let app = Router::new()
         .nest("/api", routes::merchant_routes().merge(routes::payment_routes()).merge(routes::health_routes_with_db(pool.clone())))
