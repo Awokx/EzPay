@@ -5,7 +5,7 @@ mod db;
 mod middleware;
 
 use axum::Router;
-use std::{net::SocketAddr, time::Duration};
+use std::time::Duration;
 use tower_http::{
     cors::{Any, CorsLayer},
     trace::TraceLayer,
@@ -23,12 +23,8 @@ async fn main() -> anyhow::Result<()> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let port: u16 = std::env::var("PORT")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(3001);
-
-    let pool = db::create_pool().await?;
+    let config = config::Config::from_env()?;
+    let pool = db::create_pool(&config.database).await?;
 
     let app = Router::new()
         .nest("/api", routes::merchant_routes().merge(routes::payment_routes()).merge(routes::health_routes_with_db(pool.clone())))
@@ -41,8 +37,8 @@ async fn main() -> anyhow::Result<()> {
         )
         .layer(TraceLayer::new_for_http());
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], port));
-    tracing::info!(%addr, "EzPay backend listening");
+    let addr = (config.server.host.as_str(), config.server.port);
+    tracing::info!(host = %config.server.host, port = config.server.port, "EzPay backend listening");
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;
