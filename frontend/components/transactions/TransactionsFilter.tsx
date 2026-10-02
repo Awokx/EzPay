@@ -7,7 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search, Filter } from 'lucide-react';
 import { useState } from 'react';
 
-export function TransactionsFilter() {
+export function TransactionsFilter({
+  onStatusChange,
+  onSearchChange,
+}: {
+  onStatusChange: (status: string) => void;
+  onSearchChange: (search: string) => void;
+}) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -21,11 +27,17 @@ export function TransactionsFilter() {
             <Input
               placeholder="Search transactions..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                onSearchChange(e.target.value);
+              }}
               className="pl-10"
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={(value) => {
+            setStatusFilter(value);
+            onStatusChange(value);
+          }}>
             <SelectTrigger className="w-full md:w-[180px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>

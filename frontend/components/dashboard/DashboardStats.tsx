@@ -2,34 +2,47 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, TrendingUp, Users, Clock } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { paymentsApi } from '@/lib/api/payments';
+import { useAuth } from '@/contexts/AuthContext';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function DashboardStats() {
+  const { isAuthenticated } = useAuth();
+  const payments = useQuery({
+    queryKey: ['payments', 'history'],
+    queryFn: () => paymentsApi.getHistory(),
+    enabled: isAuthenticated,
+  });
+  const rows = payments.data ?? [];
+  const completed = rows.filter((payment) => payment.status === 'completed');
+  const total = completed.reduce((sum, payment) => sum + payment.amount, 0);
   const stats = [
     {
       title: 'Total Revenue',
-      value: '$12,450.00',
-      change: '+15.3%',
+      value: `${(total / 10_000_000).toFixed(2)} XLM`,
+      change: `${completed.length} completed`,
       icon: DollarSign,
       color: 'text-green-500',
     },
     {
       title: 'Total Transactions',
-      value: '234',
-      change: '+8.1%',
+      value: String(rows.length),
+      change: 'all payments',
       icon: TrendingUp,
       color: 'text-blue-500',
     },
     {
       title: 'Active Customers',
-      value: '89',
-      change: '+12.5%',
+      value: String(new Set(rows.map((payment) => payment.fromAddress)).size),
+      change: 'unique senders',
       icon: Users,
       color: 'text-purple-500',
     },
     {
       title: 'Pending Payouts',
-      value: '$3,200.00',
-      change: '3 pending',
+      value: `${(rows.filter((payment) => payment.status === 'pending').reduce((sum, payment) => sum + payment.amount, 0) / 10_000_000).toFixed(2)} XLM`,
+      change: `${rows.filter((payment) => payment.status === 'pending').length} pending`,
       icon: Clock,
       color: 'text-yellow-500',
     },
@@ -46,12 +59,11 @@ export function DashboardStats() {
             <stat.icon className={`h-5 w-5 ${stat.color}`} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stat.value}</div>
+            {payments.isLoading && isAuthenticated
+              ? <Skeleton className="h-8 w-28" />
+              : <div className="text-2xl font-bold text-foreground">{isAuthenticated ? stat.value : '--'}</div>}
             <p className="text-xs text-muted-foreground mt-1">
-              <span className={stat.change.startsWith('+') ? 'text-green-500' : 'text-red-500'}>
-                {stat.change}
-              </span>{' '}
-              from last month
+              {payments.error ? 'Could not load payment data' : isAuthenticated ? stat.change : 'Sign in to view'}
             </p>
           </CardContent>
         </Card>

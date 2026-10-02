@@ -1,6 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
+import { paymentsApi } from '@/lib/api/payments';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,23 +12,33 @@ import { Textarea } from '@/components/ui/textarea';
 import { Copy, Check, Link as LinkIcon, Calendar } from 'lucide-react';
 
 export function PaymentLinkGenerator() {
+  const { merchant, isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
   const [amount, setAmount] = useState<number>(0);
   const [description, setDescription] = useState<string>('');
   const [expiryDate, setExpiryDate] = useState<string>('');
   const [generatedLink, setGeneratedLink] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
+  const createRequest = useMutation({
+    mutationFn: () => {
+      if (!merchant) throw new Error('Sign in to create a payment link.');
+      if (!Number.isFinite(amount) || amount <= 0) throw new Error('Enter an amount greater than zero.');
+      return paymentsApi.createRequest({
+        merchantId: merchant.id,
+        amount: Math.round(amount * 10_000_000),
+        memo: description.trim(),
+        expiresAt: expiryDate ? new Date(`${expiryDate}T23:59:59`).toISOString() : undefined,
+      });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['payment-requests'] });
+    },
+  });
 
-  const generateLink = () => {
+  const generateLink = async () => {
+    const request = await createRequest.mutateAsync();
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://ezpay.io';
-    const params = new URLSearchParams();
-    
-    if (amount > 0) params.append('amount', amount.toString());
-    if (description) params.append('description', description);
-    if (expiryDate) params.append('expiry', expiryDate);
-    
-    const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const link = `${baseUrl}/pay/${paymentId}${params.toString() ? `?${params.toString()}` : ''}`;
-    
+    const link = `${baseUrl}/pay/${request.id}`;
     setGeneratedLink(link);
   };
 
@@ -85,9 +98,12 @@ export function PaymentLinkGenerator() {
           />
         </div>
 
-        <Button onClick={generateLink} className="w-full">
+        {!isAuthenticated && <p role="alert" className="text-sm text-destructive">Sign in before creating a payment link.</p>}
+        {createRequest.error && <p role="alert" className="text-sm text-destructive">{createRequest.error.message}</p>}
+
+        <Button onClick={() => void generateLink().catch(() => undefined)} className="w-full" disabled={!isAuthenticated || createRequest.isPending}>
           <LinkIcon className="h-4 w-4 mr-2" />
-          Generate Link
+          {createRequest.isPending ? 'Creating link...' : 'Generate Link'}
         </Button>
 
         {generatedLink && (

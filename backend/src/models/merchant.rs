@@ -8,6 +8,7 @@ pub struct Merchant {
     pub id: Uuid,
     pub name: String,
     pub email: String,
+    #[serde(skip_serializing)]
     pub password_hash: String,
     pub wallet_address: String,
     pub payout_method: PayoutMethod,

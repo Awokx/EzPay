@@ -10,8 +10,6 @@ export default function SuccessPage() {
     setIsVisible(true);
   }, []);
 
-  const transactionHash = '0x' + Math.random().toString(16).slice(2) + Math.random().toString(16).slice(2);
-
   return (
     <main className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
       <div className="max-w-2xl mx-auto w-full">
@@ -58,16 +56,6 @@ export default function SuccessPage() {
           >
             Your EzPay merchant account has been created successfully. Your wallet is now ready to receive payments on the Stellar network.
           </p>
-
-          {/* Transaction Details */}
-          <div
-            className={`bg-muted/50 border border-border rounded-lg p-6 mb-8 transform transition-all duration-1000 delay-500 ${
-              isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-            }`}
-          >
-            <p className="text-sm text-muted-foreground mb-2">Account Setup Transaction Hash:</p>
-            <p className="font-mono text-sm text-accent break-all">{transactionHash}</p>
-          </div>
 
           {/* Stats Grid */}
           <div
