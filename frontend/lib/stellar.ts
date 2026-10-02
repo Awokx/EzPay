@@ -5,6 +5,7 @@
  */
 
 import * as StellarSdk from 'stellar-sdk';
+import config from './config';
 
 // TypeScript declarations for wallet extensions
 declare global {
@@ -30,9 +31,9 @@ declare global {
 }
 
 export const STELLAR_CONFIG = {
-  network: 'TESTNET' as const,
-  serverUrl: 'https://horizon-testnet.stellar.org',
-  networkPassphrase: 'Test SDF Network ; September 2015',
+  network: config.stellar.network === 'public' ? 'PUBLIC' : 'TESTNET',
+  serverUrl: config.stellar.rpcUrl,
+  networkPassphrase: config.stellar.networkPassphrase,
 };
 
 /**
