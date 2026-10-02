@@ -1,14 +1,11 @@
 // Database configuration and connection pool
 use sqlx::postgres::{PgPool, PgPoolOptions};
-use std::env;
+use crate::config::DatabaseConfig;
 
-pub async fn create_pool() -> Result<PgPool, sqlx::Error> {
-    let database_url = env::var("DATABASE_URL")
-        .expect("DATABASE_URL must be set");
-
+pub async fn create_pool(config: &DatabaseConfig) -> Result<PgPool, sqlx::Error> {
     PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&database_url)
+        .max_connections(config.max_connections)
+        .connect(&config.url)
         .await
 }
 
