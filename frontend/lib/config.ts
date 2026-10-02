@@ -3,6 +3,22 @@
  * Centralized configuration management for the frontend
  */
 
+const stellarNetwork = process.env.NEXT_PUBLIC_STELLAR_NETWORK || 'testnet';
+
+if (stellarNetwork !== 'testnet' && stellarNetwork !== 'public') {
+  throw new Error('NEXT_PUBLIC_STELLAR_NETWORK must be either "testnet" or "public"');
+}
+
+const stellarRpcUrl = process.env.NEXT_PUBLIC_STELLAR_RPC_URL || (
+  stellarNetwork === 'public'
+    ? 'https://horizon.stellar.org'
+    : 'https://horizon-testnet.stellar.org'
+);
+
+if (!/^https?:\/\//.test(stellarRpcUrl)) {
+  throw new Error('NEXT_PUBLIC_STELLAR_RPC_URL must be an http:// or https:// URL');
+}
+
 export const config = {
   app: {
     name: process.env.NEXT_PUBLIC_APP_NAME || 'EzPay',
@@ -12,9 +28,9 @@ export const config = {
     baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
   },
   stellar: {
-    network: (process.env.NEXT_PUBLIC_STELLAR_NETWORK as 'testnet' | 'public') || 'testnet',
-    rpcUrl: process.env.NEXT_PUBLIC_STELLAR_RPC_URL || 'https://horizon-testnet.stellar.org',
-    networkPassphrase: process.env.NEXT_PUBLIC_STELLAR_NETWORK === 'public'
+    network: stellarNetwork,
+    rpcUrl: stellarRpcUrl,
+    networkPassphrase: stellarNetwork === 'public'
       ? 'Public Global Stellar Network ; September 2015'
       : 'Test SDF Network ; September 2015',
   },
