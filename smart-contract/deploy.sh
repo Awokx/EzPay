@@ -5,15 +5,34 @@
 
 set -e
 
-# Load environment variables
+# Load shell-compatible environment variables from the local deployment file.
 if [ -f .env ]; then
-    export $(cat .env | grep -v '^#' | xargs)
+    set -a
+    . ./.env
+    set +a
 fi
 
-# Default values
 NETWORK=${STELLAR_NETWORK:-testnet}
 SECRET_KEY=${SECRET_KEY:-}
-RPC_URL=${STELLAR_RPC_URL:-https://soroban-testnet.stellar.org}
+case "$NETWORK" in
+    testnet)
+        RPC_URL=${STELLAR_RPC_URL:-https://soroban-testnet.stellar.org}
+        PASSPHRASE=${STELLAR_NETWORK_PASSPHRASE:-"Test SDF Network ; September 2015"}
+        ;;
+    mainnet)
+        RPC_URL=${STELLAR_RPC_URL:-https://mainnet.sorobanrpc.com}
+        PASSPHRASE=${STELLAR_NETWORK_PASSPHRASE:-"Public Global Stellar Network ; September 2015"}
+        ;;
+    *)
+        echo "Error: STELLAR_NETWORK must be either 'testnet' or 'mainnet'." >&2
+        exit 1
+        ;;
+esac
+
+if [ -z "$SECRET_KEY" ]; then
+    echo "Error: SECRET_KEY is required. Set it in smart-contract/.env or the environment." >&2
+    exit 1
+fi
 
 echo "Deploying EzPay contract to $NETWORK..."
 echo "RPC URL: $RPC_URL"
@@ -33,9 +52,9 @@ wasm-opt target/wasm32-unknown-unknown/release/ezpay.wasm \
 echo "Deploying contract..."
 soroban contract deploy \
     --wasm target/ezpay_optimized.wasm \
-    --source $SECRET_KEY \
-    --rpc-url $RPC_URL \
-    --network-passphrase "$STELLAR_NETWORK_PASSPHRASE"
+    --source "$SECRET_KEY" \
+    --rpc-url "$RPC_URL" \
+    --network-passphrase "$PASSPHRASE"
 
 echo "Contract deployed successfully!"
 echo "Please save the contract ID for initialization."
