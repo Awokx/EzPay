@@ -2,51 +2,19 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowDownRight, ArrowUpRight, ExternalLink } from 'lucide-react';
+import { ArrowDownRight, ExternalLink } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { paymentsApi } from '@/lib/api/payments';
+import { useAuth } from '@/contexts/AuthContext';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function RecentTransactions() {
-  const transactions = [
-    {
-      id: '1',
-      type: 'payment',
-      from: 'GD...XYZ',
-      amount: '$150.00',
-      status: 'completed',
-      date: '2 hours ago',
-    },
-    {
-      id: '2',
-      type: 'payment',
-      from: 'GAB...ABC',
-      amount: '$75.50',
-      status: 'completed',
-      date: '5 hours ago',
-    },
-    {
-      id: '3',
-      type: 'payout',
-      to: 'Bank Account ****1234',
-      amount: '$500.00',
-      status: 'pending',
-      date: '1 day ago',
-    },
-    {
-      id: '4',
-      type: 'payment',
-      from: 'GC...DEF',
-      amount: '$200.00',
-      status: 'completed',
-      date: '2 days ago',
-    },
-    {
-      id: '5',
-      type: 'payment',
-      from: 'GA...GHI',
-      amount: '$45.00',
-      status: 'failed',
-      date: '3 days ago',
-    },
-  ];
+  const { isAuthenticated } = useAuth();
+  const transactions = useQuery({
+    queryKey: ['payments', 'history', { limit: 5 }],
+    queryFn: () => paymentsApi.getHistory({ limit: 5 }),
+    enabled: isAuthenticated,
+  });
 
   return (
     <Card className="bg-card border-border">
@@ -54,34 +22,32 @@ export function RecentTransactions() {
         <CardTitle className="text-foreground">Recent Transactions</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {transactions.map((tx) => (
+        {!isAuthenticated && <p className="text-sm text-muted-foreground">Sign in to view transactions.</p>}
+        {isAuthenticated && transactions.isLoading && <div className="space-y-3">{[1, 2, 3].map((row) => <Skeleton key={row} className="h-16 w-full" />)}</div>}
+        {transactions.error && <p role="alert" className="text-sm text-destructive">{transactions.error.message}</p>}
+        {transactions.isSuccess && transactions.data.length === 0 && <p className="text-sm text-muted-foreground">No payments yet.</p>}
+        {transactions.data && transactions.data.length > 0 && <div className="space-y-4">
+          {transactions.data.slice(0, 5).map((tx) => (
             <div
               key={tx.id}
               className="flex items-center justify-between p-4 rounded-lg bg-background hover:bg-accent/5 transition-colors duration-200"
             >
               <div className="flex items-center gap-4">
                 <div
-                  className={`p-2 rounded-full ${
-                    tx.type === 'payment' ? 'bg-green-500/10' : 'bg-blue-500/10'
-                  }`}
+                  className="rounded-full bg-green-500/10 p-2"
                 >
-                  {tx.type === 'payment' ? (
-                    <ArrowDownRight className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <ArrowUpRight className="h-4 w-4 text-blue-500" />
-                  )}
+                  <ArrowDownRight className="h-4 w-4 text-green-500" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-foreground">
-                    {tx.type === 'payment' ? `Payment from ${tx.from}` : tx.to}
+                    Payment from {tx.fromAddress.slice(0, 6)}...{tx.fromAddress.slice(-4)}
                   </p>
-                  <p className="text-xs text-muted-foreground">{tx.date}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(tx.createdAt).toLocaleString()}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-foreground">{tx.amount}</p>
+                  <p className="text-sm font-semibold text-foreground">{(tx.amount / 10_000_000).toFixed(2)} XLM</p>
                   <Badge
                     variant={
                       tx.status === 'completed'
@@ -101,7 +67,7 @@ export function RecentTransactions() {
               </div>
             </div>
           ))}
-        </div>
+        </div>}
       </CardContent>
     </Card>
   );

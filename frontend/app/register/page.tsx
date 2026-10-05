@@ -4,8 +4,15 @@ import { useRegistrationStore } from '@/lib/registrationStore';
 import { EmbeddedWalletSetup } from '@/components/register/EmbeddedWalletSetup';
 import { StepTwo } from '@/components/register/StepTwo';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const { register } = useAuth();
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { currentStep, nextStep, prevStep, formData, setErrors, errors } = useRegistrationStore();
 
   const validateStep = () => {
@@ -49,6 +56,27 @@ export default function RegisterPage() {
   const handleNextStep = () => {
     if (validateStep()) {
       nextStep();
+    }
+  };
+
+  const handleRegistration = async () => {
+    setSubmitError(null);
+    if (!validateStep()) return;
+
+    setIsSubmitting(true);
+    try {
+      await register({
+        name: formData.businessName.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+        walletAddress: formData.walletAddress,
+        payoutMethod: 'wallet',
+      });
+      router.push('/success');
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Registration failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -147,24 +175,25 @@ export default function RegisterPage() {
               Back
             </button>
             <button
-              onClick={() => {
-                if (validateStep()) {
-                  console.log('Registration completed with data:', formData);
-                }
-              }}
-              className="flex-1 px-6 py-3 bg-accent text-accent-foreground font-semibold rounded-lg hover:shadow-lg hover:shadow-accent/50 transition-all duration-300 active:scale-95"
+              onClick={handleRegistration}
+              disabled={isSubmitting}
+              className="flex-1 px-6 py-3 bg-accent text-accent-foreground font-semibold rounded-lg hover:shadow-lg hover:shadow-accent/50 transition-all duration-300 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Complete Registration
+              {isSubmitting ? 'Creating account...' : 'Complete Registration'}
             </button>
           </div>
+        )}
+
+        {submitError && (
+          <p role="alert" className="mt-4 text-center text-sm text-destructive">{submitError}</p>
         )}
 
         {/* Login Link */}
         <div className="text-center mt-8 text-muted-foreground">
           Already have an account?{' '}
-          <a href="#" className="text-accent hover:underline font-semibold">
+          <Link href="/login" className="text-accent hover:underline font-semibold">
             Sign in
-          </a>
+          </Link>
         </div>
       </div>
 

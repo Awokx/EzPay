@@ -5,6 +5,19 @@
 
 import { apiClient } from './client';
 
+interface MerchantResponse {
+  id: string;
+  name: string;
+  email: string;
+  wallet_address: string;
+  payout_method: 'wallet' | 'bank' | 'Wallet' | 'Bank';
+  bank_account?: string | null;
+  bank_routing_number?: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Merchant {
   id: string;
   name: string;
@@ -16,6 +29,21 @@ export interface Merchant {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export function normalizeMerchant(merchant: MerchantResponse): Merchant {
+  return {
+    id: merchant.id,
+    name: merchant.name,
+    email: merchant.email,
+    walletAddress: merchant.wallet_address,
+    payoutMethod: merchant.payout_method.toLowerCase() as Merchant['payoutMethod'],
+    bankAccount: merchant.bank_account ?? undefined,
+    bankRoutingNumber: merchant.bank_routing_number ?? undefined,
+    isActive: merchant.is_active,
+    createdAt: merchant.created_at,
+    updatedAt: merchant.updated_at,
+  };
 }
 
 export interface CreateMerchantRequest {
@@ -40,28 +68,45 @@ export const merchantsApi = {
    * Register a new merchant
    */
   async create(data: CreateMerchantRequest): Promise<Merchant> {
-    return apiClient.post<Merchant>('/api/merchants', data);
+    const response = await apiClient.post<MerchantResponse>('/api/merchants', {
+      name: data.name,
+      email: data.email,
+      password: data.password,
+      wallet_address: data.walletAddress,
+      payout_method: data.payoutMethod === 'wallet' ? 'Wallet' : 'Bank',
+      bank_account: data.bankAccount ?? null,
+      bank_routing_number: data.bankRoutingNumber ?? null,
+    });
+    return normalizeMerchant(response);
   },
 
   /**
    * Get merchant by ID
    */
   async getById(id: string): Promise<Merchant> {
-    return apiClient.get<Merchant>(`/api/merchants/${id}`);
+    return normalizeMerchant(await apiClient.get<MerchantResponse>(`/api/merchants/${id}`));
   },
 
   /**
    * Get current merchant (authenticated)
    */
   async getCurrent(): Promise<Merchant> {
-    return apiClient.get<Merchant>('/api/merchants/me');
+    return normalizeMerchant(await apiClient.get<MerchantResponse>('/api/merchants/me'));
   },
 
   /**
    * Update merchant information
    */
   async update(id: string, data: UpdateMerchantRequest): Promise<Merchant> {
-    return apiClient.put<Merchant>(`/api/merchants/${id}`, data);
+    const response = await apiClient.put<MerchantResponse>(`/api/merchants/${id}`, {
+      name: data.name,
+      payout_method: data.payoutMethod === undefined
+        ? undefined
+        : data.payoutMethod === 'wallet' ? 'Wallet' : 'Bank',
+      bank_account: data.bankAccount,
+      bank_routing_number: data.bankRoutingNumber,
+    });
+    return normalizeMerchant(response);
   },
 
   /**

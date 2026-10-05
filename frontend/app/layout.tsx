@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import { Navigation } from '@/components/Navigation'
+import { AppProviders } from '@/components/AppProviders'
 
 export const metadata: Metadata = {
   title: 'EzPay - Stellar Payment Infrastructure',
@@ -17,11 +18,13 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="antialiased bg-background text-foreground">
-        <Navigation />
-        <main className="min-h-screen">
-          {children}
-        </main>
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+        <AppProviders>
+          <Navigation />
+          <main className="min-h-screen">
+            {children}
+          </main>
+          {process.env.NODE_ENV === 'production' && <Analytics />}
+        </AppProviders>
       </body>
     </html>
   )

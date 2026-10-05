@@ -27,6 +27,10 @@ services:
       DATABASE_URL: postgresql://postgres:password@postgres:5432/ezpay
       PORT: 3001
       STELLAR_NETWORK: testnet
+      STELLAR_RPC_URL: ${STELLAR_RPC_URL:-https://soroban-testnet.stellar.org}
+      STELLAR_CONTRACT_ID: ${STELLAR_CONTRACT_ID:-}
+      STELLAR_EVENT_START_LEDGER: ${STELLAR_EVENT_START_LEDGER:-}
+      STELLAR_EVENT_POLL_INTERVAL_SECS: ${STELLAR_EVENT_POLL_INTERVAL_SECS:-3}
       RUST_LOG: info
     ports:
       - "3001:3001"
